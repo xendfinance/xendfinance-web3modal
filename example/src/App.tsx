@@ -8,8 +8,6 @@ import Web3Modal from "web3modal";
 import WalletConnect from "@walletconnect/web3-provider";
 // @ts-ignore
 import CoinbaseWalletSDK from "@coinbase/wallet-sdk";
-// @ts-ignore
-import { Web3Auth } from "@web3auth/web3auth";
 
 import Button from "./components/Button";
 import Column from "./components/Column";
@@ -36,7 +34,9 @@ import {
   ETH_SIGN,
   PERSONAL_SIGN,
   DAI_BALANCE_OF,
-  DAI_TRANSFER
+  DAI_TRANSFER,
+  SWITCH_NETWORK,
+  ADD_NETWORK
 } from "./constants";
 import { callBalanceOf, callTransfer } from "./helpers/web3";
 
@@ -245,11 +245,8 @@ class App extends React.Component<any, any> {
           infuraId
         }
       },
-      web3auth: {
-        package: Web3Auth,
-        options: {
-          infuraId
-        }
+      madwallet: {
+        package: true
       }
     };
     return providerOptions;
@@ -321,6 +318,44 @@ class App extends React.Component<any, any> {
       this.setState({ web3, pendingRequest: false, result: null });
     }
   };
+
+  public switchNetwork = async (chainId: number) => {
+    const { web3 } = this.state;
+    const currentChainId = await web3.eth.net.getId();
+
+    if (currentChainId !== chainId) {
+      try {
+        await web3.currentProvider.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: Web3.utils.toHex(chainId) }],
+        });
+      } catch (switchError) {
+        console.log(switchError);
+      }
+    }
+  }
+
+  public addNetwork = async (chainId: number) => {
+    const { web3 } = this.state;
+    const currentChainId = await web3.eth.net.getId();
+
+    if (currentChainId !== chainId) {
+      try {
+        await web3.currentProvider.request({
+          method: 'wallet_addEthereumChain',
+          params: [
+            {
+              chainId: '0x64', //52 in hex
+              chainName: 'xDAI Chain',
+              rpcUrls: ['https://dai.poa.network'] /* ... */,
+            },
+          ],
+        });
+      } catch (switchError) {
+        console.log(switchError);
+      }
+    }
+  }
 
   public testSignMessage = async () => {
     const { web3, address } = this.state;
@@ -508,6 +543,14 @@ class App extends React.Component<any, any> {
                 <h3>Actions</h3>
                 <Column center>
                   <STestButtonContainer>
+                    <STestButton left onClick={this.addNetwork}>
+                      {ADD_NETWORK}
+                    </STestButton>
+                    
+                    <STestButton left onClick={() => this.switchNetwork(100)}>
+                      {SWITCH_NETWORK}
+                    </STestButton>
+
                     <STestButton left onClick={this.testSendTransaction}>
                       {ETH_SEND_TRANSACTION}
                     </STestButton>
